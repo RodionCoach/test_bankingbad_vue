@@ -1,0 +1,22 @@
+{
+  "name": "test_bankingbad_vue",
+  "version": "1.0.0",
+  "main": "index.vue",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/RodionCoach/test_bankingbad_vue.git"
+  },
+  "keywords": [
+    "bankingbad"
+  ],
+  "author": "Rodion",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RodionCoach/test_bankingbad_vue/issues"
+  },
+  "homepage": "https://github.com/RodionCoach/test_bankingbad_vue#readme",
+  "description": ""
+}
