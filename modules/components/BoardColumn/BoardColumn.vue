@@ -1,9 +1,8 @@
 <template>
   <div class="board-column">
     <div class="column-header">
-      <div class="column-title" contenteditable="true" :contenteditable="editingEnabled" @blur="emitTitle"
-        @keydown.enter.prevent="emitTitle">
-        {{ column.title }}
+      <div class="column-title" :contenteditable="editingEnabled" @blur="emitTitle" @keydown.enter.prevent="emitTitle">
+        {{ column.title }} ({{ column.cards.length }})
       </div>
       <div class="column-actions">
         <button @click="$emit('delete-column')">Delete Column</button>
@@ -21,7 +20,6 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import Card from '../Card/Card.vue'
 
 const props = defineProps({
@@ -38,11 +36,12 @@ const emit = defineEmits([
 ])
 
 const emitTitle = (e) => {
-  const title = e.target.innerText.trim()
-  if (title && title !== props.column.title) {
-    emit('update-column', title)
+  const fullText = e.target.innerText
+  const stripped = fullText.replace(/\(\d+\)$/, '').trim()
+  if (stripped && stripped !== props.column.title) {
+    emit('update-column', stripped)
   } else {
-    e.target.innerText = props.column.title
+    e.target.innerText = `${props.column.title} (${props.column.cards.length})`
   }
 }
 </script>
