@@ -1,44 +1,59 @@
 <template>
   <div class="board-column">
     <div class="column-header">
-      <h3>{{ title }}</h3>
+      <div class="column-title" contenteditable="true" :contenteditable="editingEnabled" @blur="emitTitle"
+        @keydown.enter.prevent="emitTitle">
+        {{ column.title }}
+      </div>
       <div class="column-actions">
-        <button class="action-btn disable">Disable Editing</button>
-        <button class="action-btn delete">Delete Column</button>
+        <button @click="$emit('delete-column')">Delete Column</button>
       </div>
     </div>
 
-    <Card v-for="(card, index) in cards" :key="index" :title="card.title" :description="card.description"
-      @update="(updated) => updateCard(index, updated)" @delete="deleteCard(index)" />
-
-    <button class="new-card-btn">+ New Card</button>
-    <div class="footer-actions">
-      <button class="sort-btn">Sort</button>
-      <button class="clear-btn">Clear All</button>
+    <div class="cards">
+      <Card v-for="card in column.cards" :key="card.id" :card="card" :editingEnabled="editingEnabled"
+        @update="card => $emit('update-card', { cardId: card.id, ...card })"
+        @delete="cardId => $emit('delete-card', cardId)" />
     </div>
-    <p class="timestamp">Last edit 5 min ago</p>
+
+    <button class="add-card" @click="$emit('add-card')">New Card</button>
   </div>
 </template>
 
 <script setup>
-import Card from '../Card/Card.vue';
+import { ref } from 'vue'
+import Card from '../Card/Card.vue'
 
-defineProps({
-  title: String,
-  cards: Array
+const props = defineProps({
+  column: Object,
+  editingEnabled: Boolean
 })
+
+const emit = defineEmits([
+  'update-column',
+  'delete-column',
+  'add-card',
+  'update-card',
+  'delete-card'
+])
+
+const emitTitle = (e) => {
+  const title = e.target.innerText.trim()
+  if (title && title !== props.column.title) {
+    emit('update-column', title)
+  } else {
+    e.target.innerText = props.column.title
+  }
+}
 </script>
 
 <style scoped>
 .board-column {
-  background: white;
-  border-radius: 12px;
+  background: #f4f4f4;
   padding: 1rem;
   width: 300px;
-  flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  display: flex;
-  flex-direction: column;
+  border-radius: 8px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 
 .column-header {
@@ -48,98 +63,35 @@ defineProps({
   margin-bottom: 1rem;
 }
 
-.column-header h3 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #2d2f33;
+.column-title {
+  font-weight: bold;
+  font-size: 1.1rem;
+  padding: 0.25rem;
+  border-bottom: 1px dashed #ccc;
+  outline: none;
+  cursor: text;
 }
 
-.column-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.action-btn {
+.column-actions button {
+  background: transparent;
   border: none;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 500;
+  color: red;
   cursor: pointer;
-}
-
-.action-btn.disable {
-  background-color: #f4d35e;
-  color: #333;
-}
-
-.action-btn.delete {
-  background-color: #e63946;
-  color: white;
 }
 
 .cards {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem;
 }
 
-.card {
-  background-color: #f2f3f5;
-  border-radius: 8px;
-  padding: 0.75rem;
-  font-size: 0.9rem;
-  line-height: 1.3;
-  cursor: pointer;
-  border: 1px solid #e0e0e0;
-}
-
-.card-title {
-  font-weight: 600;
-  color: #2d2f33;
-}
-
-.card-description {
-  color: #6c757d;
-  font-size: 0.8rem;
-  margin-top: 0.3rem;
-}
-
-.new-card-btn {
-  background: #dee2e6;
+.add-card {
+  margin-top: 1rem;
+  background-color: #e0e0e0;
   border: none;
-  border-radius: 8px;
-  padding: 0.6rem;
-  font-size: 0.85rem;
-  font-weight: 500;
+  padding: 0.5rem;
+  width: 100%;
   cursor: pointer;
-  margin-bottom: 0.5rem;
-  transition: background 0.2s;
-}
-
-.new-card-btn:hover {
-  background-color: #cfd4da;
-}
-
-.footer-actions {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-}
-
-.sort-btn,
-.clear-btn {
-  font-size: 0.75rem;
-  border: none;
-  background: none;
-  color: #6c757d;
-  cursor: pointer;
-}
-
-.timestamp {
-  font-size: 0.7rem;
-  color: #adb5bd;
-  text-align: center;
+  border-radius: 4px;
 }
 </style>
