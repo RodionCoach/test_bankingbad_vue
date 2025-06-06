@@ -49,6 +49,7 @@ const addColumn = () => {
     title: 'New Column',
     editingDisabled: false,
     cards: [],
+    sortOrder: SORT_ASC_KEY,
   });
 };
 
@@ -59,7 +60,7 @@ const updateColumnTitle = (columnId, e) => {
 }
 
 const deleteColumn = (columnId) => {
-  const idx = columns.findColumnById(col => col.id === columnId);
+  const idx = columns.findIndex(col => col.id === columnId);
   if (idx !== -1) columns.splice(idx, 1);
 };
 
@@ -71,7 +72,10 @@ const addCard = (columnId) => {
       title: '',
       description: '',
     });
+
+    sortCards(columnId, column.sortOrder || SORT_ASC_KEY);
   }
+
 };
 
 const updateCard = (columnId, { cardId, title, description }) => {
@@ -81,6 +85,8 @@ const updateCard = (columnId, { cardId, title, description }) => {
   if (card) {
     card.title = title
     card.description = description
+
+    sortCards(columnId, column.sortOrder || SORT_ASC_KEY);
   }
 }
 
