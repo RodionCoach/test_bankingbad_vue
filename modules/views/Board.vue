@@ -25,7 +25,7 @@ import { reactive, ref, watch, onMounted } from 'vue';
 import BoardColumn from '../components/BoardColumn/BoardColumn.vue';
 import ActionButton from '../../components/actionButton/ActionButton.vue';
 import findColumnById from '../utils/findColumnById';
-import { initialState, STORAGE_KEY, SORT_ASC_KEY, SORT_DESC_KEY } from '../utils/constants';
+import { initialState, STORAGE_KEY, SORT_ASC_KEY, SORT_DESC_KEY, DELETE_CONFIRM_WARNING } from '../utils/constants';
 
 const loadState = () => {
   const savedData = localStorage.getItem(STORAGE_KEY);
@@ -61,7 +61,9 @@ const updateColumnTitle = (columnId, e) => {
 
 const deleteColumn = (columnId) => {
   const idx = columns.findIndex(col => col.id === columnId);
-  if (idx !== -1) columns.splice(idx, 1);
+  if (idx !== -1) {
+    if (confirm(DELETE_CONFIRM_WARNING)) columns.splice(idx, 1);
+  }
 };
 
 const addCard = (columnId) => {
@@ -93,7 +95,7 @@ const updateCard = (columnId, { cardId, title, description }) => {
 const deleteCard = (columnId, cardId) => {
   const column = findColumnById(columns, columnId);
   if (column) {
-    column.cards = column.cards.filter(card => card.id !== cardId);
+    if (confirm(DELETE_CONFIRM_WARNING)) column.cards = column.cards.filter(card => card.id !== cardId);
   }
 };
 
@@ -107,7 +109,9 @@ const sortCards = (columnId, ascending) => {
 
 const clearCards = (columnId) => {
   const column = findColumnById(columns, columnId);
-  if (column) column.cards = [];
+  if (column) {
+    if (confirm(DELETE_CONFIRM_WARNING)) column.cards = [];
+  }
 };
 
 const toggleColumnEditing = (columnId) => {
