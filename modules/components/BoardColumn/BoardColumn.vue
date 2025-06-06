@@ -1,92 +1,74 @@
 <template>
   <div class="board-column">
     <div class="column-header">
-      <div class="column-title" :contenteditable="!column.disabled" @blur="emitTitle"
-        @keydown.enter.prevent="emitTitle">
-        {{ column.title }} ({{ column.cards.length }})
+      <div class="column-title" :contenteditable="editable" @blur="$emit('update-column-title', $event)"
+        @keydown.enter.prevent="$emit('update-column-title', $event)">
+        {{ title }}
       </div>
-      <div class="column-actions">
-        <button @click="$emit('toggle-disable')">
-          {{ column.disabled ? 'Enable Editing' : 'Disable Editing' }}
-        </button>
-        <button @click="$emit('delete-column')">Delete Column</button>
+      <span class="count">{{ cards.length }}</span>
+      <div class="column-controls">
+        <ActionButton :label="editable ? 'Disable Editing' : 'Unlock Column'" :color="editable ? 'green' : 'orange'"
+          @click="$emit('toggle-editing')" />
+        <ActionButton label="Delete Column" color="black" @click="$emit('delete-column')" />
       </div>
     </div>
 
     <div class="cards">
-      <Card v-for="card in sortedCards" :key="card.id" :card="card" :editingEnabled="!column.disabled"
-        @update="card => $emit('update-card', { cardId: card.id, ...card })"
-        @delete="cardId => $emit('delete-card', cardId)" />
+      <Card v-for="card in cards" :key="card.id" :card="card" :editable="editable"
+        @update="$emit('update-card', $event)" @delete="$emit('delete-card', $event)" />
+    </div>
+
+    <div v-if="editable" class="new-card">
+      <ActionButton class="new-card-button" label="+New Card" color="blue" @click="$emit('add-card')" />
     </div>
 
     <div class="column-footer">
-      <button @click="toggleSort">
-        Sort ({{ sortOrder === 'asc' ? '↑' : '↓' }})
-      </button>
-      <button @click="$emit('clear-cards')">Clear All</button>
-      <button class="add-card" @click="$emit('add-card')" :disabled="column.disabled">
-        + New Card
-      </button>
+      <ActionButton :disabled="cards.length < 2 || !editable"
+        :label="`Sort ${sortOrder === SORT_ASC_KEY ? 'Descending ↓' : 'Ascending ↑'}`"
+        @click="$emit('sort-cards', !(sortOrder === SORT_ASC_KEY))" />
+      <ActionButton :disabled="!editable" label="Clear All" color="red" @click="$emit('clear-cards')" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-import Card from '../Card/Card.vue'
+import Card from '../Card/Card.vue';
+import ActionButton from '../../../components/actionButton/ActionButton.vue';
+import { SORT_ASC_KEY } from '../../utils/constants';
 
-const props = defineProps({
-  column: Object
-})
+defineProps({
+  title: String,
+  cards: Array,
+  editable: Boolean,
+  sortOrder: String,
+});
 
-const emit = defineEmits([
-  'update-column',
-  'delete-column',
+defineEmits([
   'add-card',
   'update-card',
   'delete-card',
+  'update-column-title',
+  'delete-column',
+  'sort-cards',
   'clear-cards',
-  'toggle-disable'
-])
-
-const sortOrder = ref('asc')
-
-const toggleSort = () => {
-  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
-}
-
-const sortedCards = computed(() => {
-  return [...props.column.cards].sort((a, b) => {
-    const result = a.title.localeCompare(b.title)
-    return sortOrder.value === 'asc' ? result : -result
-  })
-})
-
-const emitTitle = (e) => {
-  const fullText = e.target.innerText
-  const stripped = fullText.replace(/\(\d+\)$/, '').trim()
-  if (stripped && stripped !== props.column.title) {
-    emit('update-column', stripped)
-  } else {
-    e.target.innerText = `${props.column.title} (${props.column.cards.length})`
-  }
-}
+  'toggle-editing',
+]);
 </script>
 
 <style scoped>
 .board-column {
-  background: #f4f4f4;
+  background: #f4f4f5;
+  border-radius: 0.5rem;
   padding: 1rem;
-  width: 300px;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-width: 400px;
 }
 
 .column-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
 }
@@ -101,13 +83,17 @@ const emitTitle = (e) => {
   flex: 1;
 }
 
-.column-actions button {
-  margin-left: 0.25rem;
-  background: transparent;
-  border: 1px solid #bbb;
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
-  cursor: pointer;
+.count {
+  background: #e4e4e7;
+  padding: 0.1rem 0.4rem;
+  border-radius: 50%;
+  font-size: 0.75rem;
+}
+
+.column-controls {
+  display: flex;
+  margin: 0.5rem;
+  gap: 0.5rem;
 }
 
 .cards {
@@ -118,20 +104,19 @@ const emitTitle = (e) => {
 
 .column-footer {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  flex-wrap: wrap;
   gap: 0.5rem;
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid #d4d4d8;
 }
 
-.column-footer button {
-  padding: 0.4rem;
-  border-radius: 4px;
-  border: none;
-  background-color: #e0e0e0;
-  cursor: pointer;
+.new-card {
+  display: flex;
 }
 
-.add-card {
-  background-color: #cce5ff;
-  font-weight: bold;
+.new-card-button {
+  flex: 1;
 }
 </style>

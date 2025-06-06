@@ -1,90 +1,81 @@
 <template>
   <div class="board">
-    <div class="board-actions">
-      <button @click="addColumn">New Column</button>
-      <button @click="shuffleColumns">Shuffle Columns</button>
-      <button @click="shuffleCards">Shuffle Cards</button>
-      <button @click="toggleEditing">{{ editingEnabled ? 'Disable' : 'Enable' }} Editing</button>
+    <div class="columns">
+      <BoardColumn v-for="column in columns" :key="column.id" :cards="column.cards || []" :title="column.title"
+        :editable="!globalEditingDisabled && !column.editingDisabled" :sortOrder="column.sortOrder"
+        @add-card="() => addCard(column.id)" @update-card="updateData => updateCard(column.id, updateData)"
+        @delete-card="cardId => deleteCard(column.id, cardId)"
+        @update-column-title="(e) => updateColumnTitle(column.id, e)" @delete-column="() => deleteColumn(column.id)"
+        @sort-cards="order => sortCards(column.id, order)" @clear-cards="() => clearCards(column.id)"
+        @toggle-editing="() => toggleColumnEditing(column.id)" />
     </div>
 
-    <div class="columns">
-      <BoardColumn v-for="col in columns" :key="col.id" :column="col" :editingEnabled="editingEnabled"
-        @update-column="updateColumn(col.id, $event)" @delete-column="deleteColumn(col.id)" @add-card="addCard(col.id)"
-        @update-card="updateCard(col.id, $event)" @delete-card="deleteCard(col.id, $event)" />
+    <div class="board-actions">
+      <ActionButton @click="addColumn" label="New Column" color="blue" />
+      <ActionButton @click="shuffleColumns" label="Shuffle Columns" color="purple" />
+      <ActionButton @click="shuffleCards" label="Shuffle Cards" color="blueViolet" />
+      <ActionButton @click="toggleGlobalEditing" :label="globalEditingDisabled ? 'Enable Editing' : 'Disable Editing'"
+        :color="globalEditingDisabled ? 'green' : 'orange'" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
-import BoardColumn from '../components/BoardColumn/BoardColumn.vue'
+import { reactive, ref, watch, onMounted } from 'vue';
+import BoardColumn from '../components/BoardColumn/BoardColumn.vue';
+import ActionButton from '../../components/actionButton/ActionButton.vue';
+import findColumnById from '../utils/findColumnById';
+import { initialState, STORAGE_KEY, SORT_ASC_KEY, SORT_DESC_KEY } from '../utils/constants';
 
-const STORAGE_KEY = 'kanban-columns'
+const loadState = () => {
+  const savedData = localStorage.getItem(STORAGE_KEY);
+  const parsedSaveData = JSON.parse(savedData);
+  if (parsedSaveData && Array.isArray(parsedSaveData)) {
+    return parsedSaveData;
+  }
+  return initialState
+};
 
-function generateId() {
-  return crypto.randomUUID()
-}
-
-const getInitialData = () => {
-  const saved = localStorage.getItem(STORAGE_KEY)
-  if (saved) return JSON.parse(saved)
-
-  return [
-    {
-      id: generateId(),
-      title: 'TODO',
-      cards: [
-        { id: generateId(), title: 'Add login form', description: 'Design and build UI' },
-        { id: generateId(), title: 'Fix bug', description: 'Auth flow issue' }
-      ]
-    },
-    {
-      id: generateId(),
-      title: 'In Progress',
-      cards: [
-        { id: generateId(), title: 'Build card UI', description: 'Make component editable' }
-      ]
-    },
-    {
-      id: generateId(),
-      title: 'Done',
-      cards: [
-        { id: generateId(), title: 'Setup project', description: 'Create base structure' }
-      ]
-    }
-  ]
-}
-
-const columns = reactive(getInitialData())
-const editingEnabled = ref(true)
+const columns = reactive(loadState());
+const globalEditingDisabled = ref(false);
 
 watch(columns, () => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(columns))
-}, { deep: true })
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(columns));
+}, { deep: true });
 
-function addColumn() {
-  columns.push({ id: generateId(), title: 'New Column', cards: [] })
+const addColumn = () => {
+  columns.push({
+    id: Date.now(),
+    title: 'New Column',
+    editingDisabled: false,
+    cards: [],
+  });
+};
+
+const updateColumnTitle = (columnId, e) => {
+  const column = findColumnById(columns, columnId);
+  const innerText = e.target.innerText
+  if (column && innerText) column.title = innerText;
 }
 
-function updateColumn(columnId, newTitle) {
-  const column = columns.find(c => c.id === columnId)
-  if (column) column.title = newTitle
-}
+const deleteColumn = (columnId) => {
+  const idx = columns.findColumnById(col => col.id === columnId);
+  if (idx !== -1) columns.splice(idx, 1);
+};
 
-function deleteColumn(columnId) {
-  const index = columns.findIndex(c => c.id === columnId)
-  if (index !== -1) columns.splice(index, 1)
-}
-
-function addCard(columnId) {
-  const column = columns.find(c => c.id === columnId)
+const addCard = (columnId) => {
+  const column = findColumnById(columns, columnId);
   if (column) {
-    column.cards.push({ id: generateId(), title: '', description: '' })
+    column.cards.push({
+      id: Date.now(),
+      title: '',
+      description: '',
+    });
   }
-}
+};
 
-function updateCard(columnId, { cardId, title, description }) {
-  const column = columns.find(c => c.id === columnId)
+const updateCard = (columnId, { cardId, title, description }) => {
+  const column = findColumnById(columns, columnId)
   if (!column) return
   const card = column.cards.find(c => c.id === cardId)
   if (card) {
@@ -93,42 +84,73 @@ function updateCard(columnId, { cardId, title, description }) {
   }
 }
 
-function deleteCard(columnId, cardId) {
-  const column = columns.find(c => c.id === columnId)
+const deleteCard = (columnId, cardId) => {
+  const column = findColumnById(columns, columnId);
   if (column) {
-    column.cards = column.cards.filter(c => c.id !== cardId)
+    column.cards = column.cards.filter(card => card.id !== cardId);
   }
-}
+};
 
-function toggleEditing() {
-  editingEnabled.value = !editingEnabled.value
-}
+const sortCards = (columnId, ascending) => {
+  const column = findColumnById(columns, columnId);
+  if (column) {
+    column.sortOrder = ascending ? SORT_ASC_KEY : SORT_DESC_KEY;
+    column.cards.sort((a, b) => a.title.localeCompare(b.title) * (ascending ? 1 : -1));
+  }
+};
 
-function shuffleColumns() {
-  columns.sort(() => Math.random() - 0.5)
-}
+const clearCards = (columnId) => {
+  const column = findColumnById(columns, columnId);
+  if (column) column.cards = [];
+};
 
-function shuffleCards() {
+const toggleColumnEditing = (columnId) => {
+  const column = findColumnById(columns, columnId);
+  if (column) column.editingDisabled = !column.editingDisabled;
+};
+
+const toggleGlobalEditing = () => {
+  globalEditingDisabled.value = !globalEditingDisabled.value;
+};
+
+const shuffleColumns = () => {
+  columns.sort(() => Math.random() - 0.5);
+};
+
+const shuffleCards = () => {
   columns.forEach(col => {
-    col.cards.sort(() => Math.random() - 0.5)
-  })
-}
+    col.cards.sort(() => Math.random() - 0.5);
+    col.sortOrder = "";
+  });
+};
 </script>
 
 <style scoped>
 .board {
-  padding: 1rem;
-}
-
-.board-actions {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  flex-direction: column;
+  height: 100vh;
+  padding-top: 2rem;
+  gap: 1rem;
 }
 
 .columns {
   display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 1rem;
-  align-items: flex-start;
+  flex: 1 1 400px;
+  overflow-x: auto;
+}
+
+.board-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-top: 1px solid #ccc;
 }
 </style>

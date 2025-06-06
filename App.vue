@@ -1,6 +1,6 @@
 <template>
   <div class="app">
-    <Board title="TODO" cards="[]" />
+    <Board />
   </div>
 </template>
 
@@ -10,9 +10,7 @@ import Board from './modules/views/Board.vue'
 
 <style>
 .app {
-  padding: 2rem;
-  font-family: 'Inter', sans-serif;
+  font-family: sans-serif;
   background-color: #f8f9fb;
-  min-height: 100vh;
 }
 </style>
